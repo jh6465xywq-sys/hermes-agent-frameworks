@@ -215,6 +215,21 @@ skills/
 - The separation makes it obvious what's ready to share vs what's tuned to one setup
 - Future extraction candidates are easy to find: look for skills that reference generic-frameworks/ skills
 
+**🔒 Security: Publishing to GitHub**
+
+See `references/github-publishing.md` for a step-by-step guide with common failure fixes.
+
+When pushing frameworks to a public repo:
+
+1. **Create a separate public repo** — don't mix generic frameworks with your private backup repo
+2. **Use a Fine-grained token** (not Classic token):
+   - Repository access: **Only select repositories** → choose the framework repo
+   - Permissions: **Contents: Write** is the minimum (Metadata: Read-only is auto)
+   - This limits blast radius to exactly one public repo — no access to private repos
+3. **Set an expiration** — 7 days is plenty; you can always regenerate
+4. **Revoke the token after pushing** — go to Settings → Developer settings → Tokens and delete it
+5. **Never hardcode tokens** in SKILL.md or reference files — use placeholders like `<your-token>`
+
 ### Phase 9: Onboarding Completion Checklist
 
 Before declaring onboarding done, verify:
