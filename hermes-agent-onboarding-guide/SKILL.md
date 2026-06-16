@@ -155,6 +155,10 @@ Set up the memory system for lasting productivity:
    - Configure Obsidian MCP in config.yaml
    - Set up vault folder structure (see vault-external-brain skill)
    - Save vault path and structure to memory
+   - **Set up cron automation** for zero-touch maintenance:
+     - Distillation cron: every 2 days (`memory-maintenance` + `vault-external-brain` skills)
+     - Daily vault check-in: daily at 4 AM (`vault-external-brain` skill)
+     - See `vault-external-brain` skill section I for exact commands
 ```
 
 **Memory discipline rules:**
@@ -182,6 +186,74 @@ The skill should include:
 - Pitfalls / gotchas section
 - Verification step at the end
 ```
+
+#### Distribution: Making Frameworks Consumable
+
+After extracting a framework, **don't just leave it as files** — your users (or future-you on a new machine) will find it and have no clue how to use it. A "published" framework has:
+
+**Repo-level files** (in the framework repo root):
+
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `README.md` | Project homepage: What's inside, Why use this, Installation methods, Usage examples | ✅ Yes |
+| `CATALOG.md` | Index table: every framework in the repo + one-liner description + load command | ✅ Yes |
+| `LICENSE` | Open-source license (MIT recommended for Hermes skills) | ✅ If public |
+| `install.sh` | One-liner install script (see pattern below) | Recommended |
+| `.gitignore` | Prevent credential files, temp files from leaking | ✅ Yes |
+
+**Install script pattern** (`install.sh`):
+
+```bash
+#!/usr/bin/env bash
+# Target: $HERMES_HOME/skills/<skill-name>/
+REPO="https://raw.githubusercontent.com/<owner>/<repo>/main"
+
+install_skill() {
+  local name="$1"
+  local dest="${HERMES_HOME:-$HOME/.hermes}/skills/$name"
+
+  if [ -d "$dest" ]; then
+    echo "  ⚠  $name already exists, skipping"; return
+  fi
+
+  mkdir -p "$dest"/{references,scripts,assets}
+  curl -sSL --connect-timeout 10 --max-time 30 \
+    "$REPO/$name/SKILL.md" -o "$dest/SKILL.md"
+  echo "  ✓ $name installed"
+}
+
+install_skill "vault-external-brain"
+install_skill "hermes-agent-onboarding-guide"
+```
+
+Users then run:
+```bash
+curl -sSL https://raw.githubusercontent.com/<owner>/<repo>/main/install.sh | bash
+```
+
+**Versioning:** Tag with semver:
+```bash
+git tag v1.0.0
+git push origin main --tags
+```
+
+**README structure:**
+1. Project name + one-liner description
+2. Table of contents / What's Inside (table of frameworks)
+3. Installation section with multiple options (curl one-liner, git clone, manual download)
+4. Per-framework usage examples
+5. Roadmap (optional — shows project is alive)
+6. License badge
+
+**Final check before publishing:**
+- [ ] All personal info stripped (paths, usernames, real names, project names)
+- [ ] README.md written with install instructions
+- [ ] install.sh tested end-to-end
+- [ ] LICENSE file added
+- [ ] CATALOG.md updated
+- [ ] Git tag applied (e.g. v1.0.0)
+- [ ] Fine-grained token used, not classic token
+- [ ] Token revoked after push
 
 #### Framework Extraction Workflow
 

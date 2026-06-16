@@ -1,84 +1,111 @@
-# GitHub Publishing Workflow for Generic Frameworks
+# GitHub Publishing Guide for Hermes Skills
 
-A quick reference for pushing extracted frameworks to a public repo — covers auth setup, common failures, and cleanup.
+Complete step-by-step for pushing a Hermes skill or framework collection to a public GitHub repo.
 
 ## Prerequisites
 
-- A GitHub repo created (public or private)
-- A fine-grained token with **Contents: Write** on that specific repo
-- Git installed on the local machine
+- git installed and configured
+- A GitHub account
+- A Hermes skill/skill collection ready to publish (no personal info)
 
-## Quick Steps
+## Step 1: Create a Public Repo (via browser)
+
+1. Go to https://github.com/new
+2. **Owner:** your username
+3. **Repository name:** short, descriptive (e.g. `hermes-agent-frameworks`)
+4. **Description:** one-liner explaining what's in the repo
+5. **Visibility:** Public (for reusable frameworks)
+6. **Add a README:** No (we'll write our own)
+7. **License:** MIT (recommended for Hermes skills)
+8. Click **Create repository**
+
+## Step 2: Init Local Git & Add Content
 
 ```bash
-# 1. Initialize & commit
-cd /path/to/frameworks-folder
+cd /path/to/your-framework-collection
 git init
 git add -A
-git commit -m "🎉 Initial commit: description"
-
-# 2. Set remote with token
-# Format: https://<USERNAME>:<TOKEN>@github.com/<USER>/<REPO>.git
-git remote add origin https://YOUR_USERNAME:YOUR_TOKEN@github.com/YOUR_USER/REPO_NAME.git
-
-# 3. Push
-git push -u origin main   # or 'master' depending on default branch name
+git commit -m "🎉 Initial commit: Hermes Agent reusable frameworks"
 ```
 
-## Common Pitfalls
-
-### ❌ "Bad credentials" / 401
-
-**Most likely cause:** Token doesn't have Contents: Write permission.
-
-Fix: Go to [Fine-grained tokens page](https://github.com/settings/tokens?type=beta), delete the token, create a new one with:
-- Repository access → Only select repositories → your framework repo
-- Permissions → **Contents: Write** (add via "+ Add permissions" button)
-- Metadata: Read-only (auto-granted)
-
-### ❌ Git push fails with special characters in token
-
-Fine-grained tokens contain `_` and other characters that can break shell quoting.
-
-**On Windows/MSYS (bash):** Store token via credential helper:
+If the repo already exists with README from step 1, the branch is `main`:
 ```bash
-git config --local credential.helper store
-echo "https://USERNAME:TOKEN@github.com" > .git-credentials
+git branch -m main
+git remote add origin https://github.com/<owner>/<repo>.git
+```
+
+## Step 3: Generate a Fine-Grained Token
+
+⚠️ **Use a Fine-grained token, NOT a Classic token.** Classic tokens grant access to ALL your repos and cannot be restricted.
+
+1. Go to https://github.com/settings/tokens?type=beta
+2. Click **Generate new token → Fine-grained token**
+3. **Token name:** `hermes-push`
+4. **Expiration:** 7 days
+5. **Repository access:** **Only select repositories** → choose your framework repo
+6. **Permissions → Repository permissions:**
+   - **Contents:** `Access: Write` (required for pushing)
+   - **Metadata:** `Access: Read-only` (auto-added)
+7. Click **Generate token** — **copy it immediately**
+
+**Token format:** `github_pat_xxxx...`
+
+## Step 4: Push
+
+```bash
+git config --local credential.helper "store --file .git-credentials"
+echo "https://<username>:<token>@github.com" > .git-credentials
 git push -u origin main
+rm -f .git-credentials
+git config --local --unset credential.helper
+git remote set-url origin https://github.com/<owner>/<repo>.git
 ```
 
-**On Linux/macOS:** Use the URL format in single quotes:
-```bash
-git remote add origin 'https://USERNAME:TOKEN@github.com/USER/REPO.git'
-```
-
-### ❌ "Password authentication is not supported"
-
-Fine-grained tokens don't work with password-based auth. Make sure you're using the token as the password, not your GitHub password.
-
-### ❌ Default branch is 'master' not 'main'
-
-If the repo was created without a README, the first push defaults to `master`. Push to `master` first, then rename if needed:
-```bash
-git push -u origin master
-```
-
-## Verify
+## Step 5: Tag a Version
 
 ```bash
-curl -s -H "Authorization: Bearer YOUR_TOKEN" \
-  "https://api.github.com/repos/USER/REPO/contents" | head -5
+git tag v1.0.0
+git push origin main --tags
 ```
 
-Should return 200 with a list of files.
+## Step 6: Revoke the Token
 
-## Cleanup
+1. Go to https://github.com/settings/tokens?type=beta
+2. Delete the token immediately after push
 
-After pushing successfully:
+## Common Failure Modes
 
-1. Revoke the token: https://github.com/settings/tokens?type=beta → Delete
-2. Optionally remove `.git-credentials` file from the project directory:
-   ```bash
-   rm .git-credentials
-   git config --local --unset credential.helper
-   ```
+### "Password authentication is not supported for Git operations"
+
+Fine-grained tokens can't be embedded in the remote URL directly. Use credential store:
+```bash
+git config --local credential.helper "store --file .git-credentials"
+echo "https://<username>:<token>@github.com" > .git-credentials
+```
+
+### "Invalid username or token"
+
+Causes:
+- Token was expired before push
+- Missing Contents: Write permission
+- Classic token used instead of Fine-grained
+
+### "Updates were rejected" (non-fast-forward)
+
+The GitHub repo has initial commits (README, LICENSE). Force push is acceptable for a fresh repo:
+```bash
+git push -u origin main --force
+```
+
+### Token works for `/user` API but fails for git push
+
+The token lacks repo-scope permissions. Check that Contents: Write is set.
+
+## Security Rules
+
+- ✅ Fine-grained token limited to ONE repo with ONLY Contents: Write
+- ✅ Revoke immediately after use
+- ✅ Never hardcode tokens in SKILL.md
+- ❌ Never use Classic tokens with `repo` scope
+- ❌ Never commit `.git-credentials`
+- ❌ Don't leave token embedded in `git remote URL`

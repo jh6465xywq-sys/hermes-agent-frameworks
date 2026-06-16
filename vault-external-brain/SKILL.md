@@ -171,6 +171,42 @@ If you use a shared inbox folder (iCloud, Dropbox, watched directory):
 - Handle race conditions when multiple agents could read the same file (read-then-move or semaphore)
 - Document the protocol in `70-跨Agent协作/` as a reference
 
+### I. Cron Automation (Zero-Touch Mode)
+
+For full autonomy, schedule cron jobs to handle memory maintenance and vault check-ins without manual prompting.
+
+#### Distillation Cron (Every 2 Days)
+
+Automatically checks memory usage and distills if >80%:
+
+```bash
+hermes cron create \
+  --name "memory-distill" \
+  --schedule "0 8 */2 * *" \
+  --skills memory-maintenance,vault-external-brain \
+  --prompt "检查 memory 使用率，超 80% 则蒸馏归档到 vault。分类规则：环境配置→归档，重复/临时→删除，用户偏好→合并压缩。蒸馏后写日志到 70-跨Agent协作/交接日志.md"
+```
+
+#### Daily Vault Check-In Cron
+
+Writes a daily health check to the vault handover log:
+
+```bash
+hermes cron create \
+  --name "vault-daily-checkin" \
+  --schedule "0 4 * * *" \
+  --skills vault-external-brain \
+  --prompt "在 vault 的 70-跨Agent协作/交接日志.md 追加一条日检记录，检查 vault 目录结构完整性。格式：## YYYY-MM-DD 日检\n- 状态：正常运行"
+```
+
+#### Cron Setup Notes
+
+- Cron jobs run in isolated sessions with no conversation context — prompts must be self-contained
+- Load `memory-maintenance` + `vault-external-brain` skills for distillation cron
+- The `deliver: local` option saves results without sending notifications
+- To list, pause, or remove: `hermes cron list`, `hermes cron pause <id>`, `hermes cron remove <id>`
+- Test a cron immediately: `hermes cron run <id>`
+
 ## Integration with Other Hermes Features
 
 This framework pairs well with:
@@ -178,6 +214,9 @@ This framework pairs well with:
 - **`memory-maintenance` skill** — regular memory audit automation
 - **`obsidian` skill** — direct vault access via MCP or file tools
 - **`hermes-agent` skill** — configure MCP, profiles, and skills
+- **`hermes-agent-skill-authoring` skill** — extracting and publishing generic frameworks
+
+For the full workflow on publishing reusable frameworks to a public GitHub repo (README, install script, LICENSE, version tags, token management), see `references/github-publishing.md`.
 
 ## Customization Guide
 
@@ -198,6 +237,8 @@ This framework pairs well with:
 - ⚠️ Obsidian MCP can be slow on very large vaults (>1000 files); keep your vault lean
 - ⚠️ Multiple agents writing concurrently can race — use the handover log as a lightweight lock
 - ⚠️ Memory distillation deletes from agent memory — make sure the vault archive is complete before deleting
+- ⚠️ Cron jobs run with no user present — don't include interactive steps in cron prompts
+- ⚠️ Test new cron jobs immediately with `hermes cron run <id>` instead of waiting for the schedule
 
 ## Verification Checklist
 
@@ -209,5 +250,8 @@ After setup, verify the framework works:
 - [ ] Agent persona mentions checking vault before acting
 - [ ] Handover log exists at `70-跨Agent协作/交接日志.md`
 - [ ] `memory-maintenance` skill loaded for distillation
+- [ ] Distillation cron created: every 2 days, loads memory-maintenance + vault-external-brain
+- [ ] Daily vault check-in cron created: daily, writes to handover log
+- [ ] Cron tested with `hermes cron run <id>` (optional but recommended)
 - [ ] Test: ask agent "what's in the vault index?" — should read and summarize
 - [ ] Test: ask agent to write a note → verify it appears in the correct folder
