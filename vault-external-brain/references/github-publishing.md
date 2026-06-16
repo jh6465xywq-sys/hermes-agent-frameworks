@@ -95,3 +95,14 @@ Force push only on first push (fresh repo, no other contributors).
 - **repo vs install.sh URLs.** install.sh must use `raw.githubusercontent.com/<user>/<repo>/main/` URLs, not the normal github.com page URLs.
 - **Skill not visible in current session.** The loader caches at session start. Verify in a fresh session.
 - **README.md alongside SKILL.md.** Hermes loads SKILL.md as the entry point. README.md is for human browsing only.
+- **🚨 .git-credentials must NOT be committed.** Credential helper stores the token in plain text. Add `.git-credentials` to `.gitignore` immediately after setup:
+  ```bash
+  echo ".git-credentials" >> .gitignore
+  git rm --cached .git-credentials  # remove from tracking if accidentally committed
+  ```
+  Use `git diff --cached` before every commit to catch sensitive files. The token can push to your repo — if it leaks someone else can too.
+- **Remove token from remote URL.** After setting up credential helper, run:
+  ```bash
+  git remote set-url origin https://github.com/<user>/<repo>.git
+  ```
+  Otherwise the token is visible in `git remote -v` output.

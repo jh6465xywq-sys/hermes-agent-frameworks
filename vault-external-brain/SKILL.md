@@ -171,41 +171,45 @@ If you use a shared inbox folder (iCloud, Dropbox, watched directory):
 - Handle race conditions when multiple agents could read the same file (read-then-move or semaphore)
 - Document the protocol in `70-跨Agent协作/` as a reference
 
-### I. Cron Automation (Zero-Touch Mode)
+### I. Zero-Touch Maintenance
 
-For full autonomy, schedule cron jobs to handle memory maintenance and vault check-ins without manual prompting.
+The framework supports two complementary approaches: **session-triggered** (fires whenever you use the agent) and **on-demand cron** (fires on a schedule if your agent runs 24/7).
 
-#### Distillation Cron (Every 2 Days)
+#### Approach 1: Session-Triggered (Recommended)
 
-Automatically checks memory usage and distills if >80%:
+Add this to your agent persona or profile — it checks memory on every conversation start, regardless of timezone or uptime:
+
+```yaml
+# Add to agent-persona.md or profile config
+- At the start of each session, check memory usage:
+  1. Read 70-跨Agent协作/交接日志.md for handover state
+  2. If memory > 80%, execute distillation immediately
+  3. If user profile > 65%, compress entries
+```
+
+This fires whenever the user opens the agent, so it works across all timezones and sleep schedules. No cron dependency.
+
+#### Approach 2: On-Demand Cron (Optional)
+
+If your Hermes runs 24/7, you can add a cron job to catch cases missed by session triggers:
 
 ```bash
 hermes cron create \
   --name "memory-distill" \
-  --schedule "0 8 */2 * *" \
+  --schedule "PICK_YOUR_TIME" \         # ← customize to YOUR active hours
   --skills memory-maintenance,vault-external-brain \
-  --prompt "检查 memory 使用率，超 80% 则蒸馏归档到 vault。分类规则：环境配置→归档，重复/临时→删除，用户偏好→合并压缩。蒸馏后写日志到 70-跨Agent协作/交接日志.md"
+  --prompt "检查 memory 使用率，超 80% 则蒸馏归档到 vault"
 ```
 
-#### Daily Vault Check-In Cron
+**Customize your schedule** — times are just examples; pick what works for you:
 
-Writes a daily health check to the vault handover log:
+| If you're… | Try this cron time | Reason |
+|------------|-------------------|--------|
+| Morning person | `0 9 * * 1,4` (Mon/Thu 9AM) | Mid-morning coffee check |
+| Night owl | `0 2 * * 1,4` (Mon/Thu 2AM) | Late-night cleanup |
+| Mixed | `0 12 */2 * *` (every 2 days at noon) | Lunch break, safe for most |
 
-```bash
-hermes cron create \
-  --name "vault-daily-checkin" \
-  --schedule "0 4 * * *" \
-  --skills vault-external-brain \
-  --prompt "在 vault 的 70-跨Agent协作/交接日志.md 追加一条日检记录，检查 vault 目录结构完整性。格式：## YYYY-MM-DD 日检\n- 状态：正常运行"
-```
-
-#### Cron Setup Notes
-
-- Cron jobs run in isolated sessions with no conversation context — prompts must be self-contained
-- Load `memory-maintenance` + `vault-external-brain` skills for distillation cron
-- The `deliver: local` option saves results without sending notifications
-- To list, pause, or remove: `hermes cron list`, `hermes cron pause <id>`, `hermes cron remove <id>`
-- Test a cron immediately: `hermes cron run <id>`
+> ⚠️ Cron only works while Hermes is running. If your computer sleeps at cron time, the job is skipped. Session-triggered approach (Approach 1) is more reliable for this reason.
 
 ## Integration with Other Hermes Features
 
@@ -237,8 +241,8 @@ For the full workflow on publishing reusable frameworks to a public GitHub repo 
 - ⚠️ Obsidian MCP can be slow on very large vaults (>1000 files); keep your vault lean
 - ⚠️ Multiple agents writing concurrently can race — use the handover log as a lightweight lock
 - ⚠️ Memory distillation deletes from agent memory — make sure the vault archive is complete before deleting
-- ⚠️ Cron jobs run with no user present — don't include interactive steps in cron prompts
-- ⚠️ Test new cron jobs immediately with `hermes cron run <id>` instead of waiting for the schedule
+- ⚠️ Session-triggered distillation only fires when you start a conversation — if you go days without chatting, memory may pile up. Pair with optional cron for 24/7 coverage.
+- ⚠️ Cron jobs miss if your computer sleeps — session-triggered (Approach 1) is more reliable for most users
 
 ## Verification Checklist
 
@@ -250,8 +254,7 @@ After setup, verify the framework works:
 - [ ] Agent persona mentions checking vault before acting
 - [ ] Handover log exists at `70-跨Agent协作/交接日志.md`
 - [ ] `memory-maintenance` skill loaded for distillation
-- [ ] Distillation cron created: every 2 days, loads memory-maintenance + vault-external-brain
-- [ ] Daily vault check-in cron created: daily, writes to handover log
-- [ ] Cron tested with `hermes cron run <id>` (optional but recommended)
+- [ ] Session-trigger: persona includes "check memory > 80% at session start" (Approach 1)
+- [ ] Optional cron: set only if Hermes runs 24/7 (customize time to your schedule)
 - [ ] Test: ask agent "what's in the vault index?" — should read and summarize
 - [ ] Test: ask agent to write a note → verify it appears in the correct folder

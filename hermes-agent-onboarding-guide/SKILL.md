@@ -155,10 +155,10 @@ Set up the memory system for lasting productivity:
    - Configure Obsidian MCP in config.yaml
    - Set up vault folder structure (see vault-external-brain skill)
    - Save vault path and structure to memory
-   - **Set up cron automation** for zero-touch maintenance:
-     - Distillation cron: every 2 days (`memory-maintenance` + `vault-external-brain` skills)
-     - Daily vault check-in: daily at 4 AM (`vault-external-brain` skill)
-     - See `vault-external-brain` skill section I for exact commands
+   - **Set up session-triggered maintenance** (no cron needed):
+     - Add to agent persona: "at session start, check memory > 80% → distill"
+     - This fires on every conversation, works across all timezones/sleep schedules
+     - Optional cron: see `vault-external-brain` skill section I for details
 ```
 
 **Memory discipline rules:**
