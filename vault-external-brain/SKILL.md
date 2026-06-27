@@ -117,18 +117,40 @@ When agent memory exceeds 80% capacity (or periodically):
 
 1. **Audit** — dump all memory entries
 2. **Classify each entry**:
+   - `[CORE]` tagged entries → **Never removed, highest priority** (see Core Memory Protection below)
    - Environment config → archive to `60-环境配置/`
    - Troubleshooting/solutions → archive to `50-Agent共享/`
    - User preferences → merge/shorten, keep in memory
    - Ephemeral (>30 days untouched) → delete outright
-3. **Clean duplicates first** — keep the most specific version
-4. **Archive to vault** — write consolidated notes to the appropriate folder
-5. **Compress preferences** — shorten without losing meaning
-6. **Log distillation** — write to `70-跨Agent协作/交接日志.md`:
+3. **Check for `[CORE]` entries first** — skip them entirely in steps 4-6
+4. **Clean duplicates first** — keep the most specific version
+5. **Archive to vault** — write consolidated notes to the appropriate folder
+6. **Compress preferences** — shorten without losing meaning
+7. **Log distillation** — write to `70-跨Agent协作/交接日志.md`:
    - Reason (usage %, type of pollution)
    - What was archived and to which file
    - What was cleaned/removed
    - Remaining entry count and new usage %
+   - Number of `[CORE]` entries protected
+
+#### Core Memory Protection (`[CORE]` tag)
+
+Frequently used instructions should survive distillation permanently:
+
+| Concept | Rule |
+|---------|------|
+| **What is `[CORE]`?** | Entries tagged `[CORE]` in agent memory — never removed by distillation |
+| **Promotion trigger** | Same/similar instruction appears 3+ times naturally across sessions (not debugging iterations) |
+| **Frequent recurring need** | User spontaneously asks for the same thing (e.g. "调亮度" every day) → promote to `[CORE]` |
+| **Debugging iteration** | User asks to redo/fix because result was bad ("不行，重来") → save resolved approach to vault `50-Agent共享/`, NOT to memory |
+| **Promotion format** | `[CORE] <标题>：<核心指令>。必要时补充常见失败兜底。` |
+| **Capacity overflow** | If `[CORE]` entries cause >90% usage, compress their content text, never delete them |
+| **User confirmation** | Always ask user before promoting to `[CORE]` |
+
+**Frequency detection** (run at session start or when memory maintenance is triggered):
+- Use `session_search()` to scan recent sessions for recurring keyword patterns
+- If 3+ similar requests in past 7 days → candidate for `[CORE]` promotion
+- Classify as "Frequent Recurring Need" or "Debugging Iteration" using context (repetition pattern vs fix/retry pattern)
 
 ### F. Writing Conventions
 

@@ -113,6 +113,8 @@ Set up the right model for the right job:
 - [ ] Vision model (if needed) — configure under auxiliary.vision
 - [ ] Fallback provider (when primary is rate-limited or down)
 - [ ] Cost awareness: which models are free vs paid tiers
+- [ ] GitHub authentication: classic token for git push, fine-grained for API (see `github-auth` skill)
+- [ ] Understanding of `*** ` Hermes secret substitution (resolves to config.yaml values)
 ```
 
 **Example tiering strategy:**
@@ -163,6 +165,10 @@ Set up the memory system for lasting productivity:
 
 **Memory discipline rules:**
 - ✓ **Save:** Environment facts, user preferences, project conventions, tool quirks, API endpoints
+- ✓ **Tag frequently-used instructions as `[CORE]`:** If user asks for the same thing 3+ times across sessions (e.g. brightness adjustment, model switching), promote it as `[CORE]` memory — this survives all future distillation
+- ✓ **Distinguish recurring needs from debugging iterations:**
+  - Frequent recurring need (user asks naturally) → `[CORE]` memory
+  - Debugging iteration (user redoes because result was bad) → vault `50-Agent共享/` as experience, never memory
 - ✗ **Don't save:** Task progress, temporary state, session outcomes, completed work logs
 - Use `memory(target='memory')` for environment/tool facts
 - Use `memory(target='user')` for identity/preferences
@@ -252,8 +258,8 @@ git push origin main --tags
 - [ ] LICENSE file added
 - [ ] CATALOG.md updated
 - [ ] Git tag applied (e.g. v1.0.0)
-- [ ] Fine-grained token used, not classic token
-- [ ] Token revoked after push
+- [ ] Classic token used for git push, fine-grained token for API calls
+- [ ] Token revoked after push (optional but recommended)
 
 #### Framework Extraction Workflow
 
@@ -294,13 +300,12 @@ See `references/github-publishing.md` for a step-by-step guide with common failu
 When pushing frameworks to a public repo:
 
 1. **Create a separate public repo** — don't mix generic frameworks with your private backup repo
-2. **Use a Fine-grained token** (not Classic token):
-   - Repository access: **Only select repositories** → choose the framework repo
-   - Permissions: **Contents: Write** is the minimum (Metadata: Read-only is auto)
-   - This limits blast radius to exactly one public repo — no access to private repos
-3. **Set an expiration** — 7 days is plenty; you can always regenerate
-4. **Revoke the token after pushing** — go to Settings → Developer settings → Tokens and delete it
-5. **Never hardcode tokens** in SKILL.md or reference files — use placeholders like `<your-token>`
+2. **Use the right token type for the job:**
+   - **Classic token** (`ghp_`, 40 chars, `repo` scope) for **git push** operations
+   - **Fine-grained token** (`github_pat_`, ~158 chars) for **API calls** only
+   - ⚠️ Fine-grained tokens CANNOT be used for `git push` — they only work with the GitHub API
+   - ⚠️ Classic tokens with `repo` scope grant access to ALL your repos — use temporarily and revoke after push
+3. **Never hardcode tokens** in SKILL.md or reference files — use placeholders like `<your-token>`
 
 ### Phase 9: Onboarding Completion Checklist
 
